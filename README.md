@@ -20,7 +20,7 @@ Execute the following command in a terminal.
 Currently supported distributions are Ubuntu, Debian, CentOS, Fedora
 
 ```
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/monk-io/sonaric-install/main/linux-install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/monk-io/sonaric-install/main/linux-install-sonaric.sh)"
 ```
 
 Alternatively, you can download and unpack the binaries, that requires prerequisites:
