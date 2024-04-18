@@ -183,7 +183,7 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu|debian|raspbian)
-			pre_reqs="apt-transport-https ca-certificates curl podman"
+			pre_reqs="apt-transport-https ca-certificates curl"
 			if ! command -v gpg > /dev/null; then
 				pre_reqs="$pre_reqs gnupg"
 			fi
@@ -207,10 +207,10 @@ do_install() {
 		  # use dnf for fedora or rocky linux, yum for centos or rhel
 			if [ "$lsb_dist" = "fedora" ] || [ "$lsb_dist" = "rocky" ]; then
 				pkg_manager="dnf"
-				pre_reqs="dnf-plugins-core podman"
-			else
+				pre_reqs="dnf-plugins-core"
+      elif [ "$lsb_dist" = "centos" ]; then
 				pkg_manager="yum"
-				pre_reqs="yum-utils podman"
+				pre_reqs="yum-utils"
 			fi
 			repo_file_url="$RPM_DOWNLOAD_URL"
 			(
@@ -218,7 +218,6 @@ do_install() {
 					set -x
 				fi
 				$sh_c "$pkg_manager install -y -q $pre_reqs"
-				$sh_c "$pkg_manager copr enable -y -q jdoss/wireguard epel-8-x86_64"
 				$sh_c 'tee -a /etc/yum.repos.d/artifact-registry.repo << EOF
 [sonaric-releases-rpm]
 name=sonaric-releases-rpm
