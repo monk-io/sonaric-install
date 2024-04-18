@@ -17,10 +17,14 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/monk-io/homebrew-sonaric
 ## Linux
 
 Execute the following command in a terminal.
-Currently supported distributions are Ubuntu, Debian, CentOS, Fedora
+Currently supported distributions are:
+* Ubuntu 22.04+
+* Debian 12+
+* CentOS 8+
+* Rocky Linux 8+
 
 ```
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/monk-io/sonaric-install/main/linux-install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/monk-io/sonaric-install/main/linux-install-sonaric.sh)"
 ```
 
 Alternatively, you can download and unpack the binaries, that requires prerequisites:
@@ -30,4 +34,10 @@ Alternatively, you can download and unpack the binaries, that requires prerequis
 
 ```
 curl -skSL --retry 3 https://storage.googleapis.com/sonaric-releases/stable/linux/sonaric-amd64-latest.tar.gz | tar -xz -C /usr/local/bin
+```
+
+With manual install you will need to start the sonaric service manually:
+
+```
+sudo /usr/local/bin/sonaricd
 ```
