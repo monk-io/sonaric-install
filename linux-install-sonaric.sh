@@ -10,14 +10,6 @@ command_exists() {
 	command -v "$@" > /dev/null 2>&1
 }
 
-is_dry_run() {
-	if [ -z "$DRY_RUN" ]; then
-		return 1
-	else
-		return 0
-	fi
-}
-
 get_distribution() {
 	lsb_dist=""
 	# Every system that we officially support has /etc/os-release
@@ -61,7 +53,6 @@ check_forked() {
 					# OSMC runs Raspbian
 					lsb_dist=raspbian
 				else
-					# We're Debian and don't even know it!
 					lsb_dist=debian
 				fi
 				dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
@@ -88,20 +79,7 @@ check_forked() {
 }
 
 do_install() {
-	echo "# Executing Sonaric install script, commit: $SCRIPT_COMMIT_SHA"
-
-	if command_exists sonaricd; then
-		cat >&2 <<-'EOF'
-			Warning: the "sonaricd" command appears to already exist on this system.
-
-			If you already have Sonaric installed, this script can cause trouble, which is
-			why we're displaying this warning and provide the opportunity to cancel the
-			installation.
-
-			You may press Ctrl+C now to abort this script.
-		EOF
-		( set -x; sleep 20 )
-	fi
+	echo "# Executing Sonaric install script"
 
 	user="$(id -un 2>/dev/null || true)"
 
@@ -120,9 +98,10 @@ do_install() {
 		fi
 	fi
 
-	if is_dry_run; then
-		sh_c="echo"
-	fi
+	# check if systemctl unit is present and if it is active
+	if command_exists systemctl && systemctl list-units --full --all sonaricd.service | grep -Fq 'sonaricd.service'; then
+    $sh_c 'systemctl start sonaricd' || echo "Failed to start sonaricd"
+  fi
 
 	# perform some very rudimentary platform detection
 	lsb_dist=$( get_distribution )
@@ -183,15 +162,23 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu|debian|raspbian)
+      if command_exists sonaricd; then
+        echo "Sonaric is already installed"
+        $sh_c 'apt-get update -qq >/dev/null'
+        $sh_c 'apt-get install sonaricd sonaric'
+        for try in {1..30} ; do
+          $sh_c "sonaric version" > /dev/null 2>&1 && break || sleep 2
+        done
+        $sh_c "sonaric update --nocolor --nofancy --all"
+        exit 0
+      fi
+
 			pre_reqs="apt-transport-https ca-certificates curl"
 			if ! command -v gpg > /dev/null; then
 				pre_reqs="$pre_reqs gnupg"
 			fi
 			apt_repo="deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/sonaric.gpg] $APT_DOWNLOAD_URL sonaric-releases-apt main"
 			(
-				if ! is_dry_run; then
-					set -x
-				fi
 				$sh_c 'apt-get update -qq >/dev/null'
 				$sh_c "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $pre_reqs >/dev/null"
 				$sh_c 'install -m 0755 -d /etc/apt/keyrings'
@@ -212,29 +199,34 @@ do_install() {
 				pkg_manager="yum"
 				pre_reqs="yum-utils"
 			fi
-			repo_file_url="$RPM_DOWNLOAD_URL"
+
+      if command_exists sonaricd; then
+        echo "Sonaric is already installed"
+        $sh_c "$pkg_manager update --refresh -y -q sonaricd sonaric"
+        $sh_c 'systemctl start sonaricd' || echo "Failed to start sonaricd"
+        for try in {1..30} ; do
+          $sh_c "sonaric version" > /dev/null 2>&1 && break || sleep 2
+        done
+        $sh_c "sonaric update --nocolor --nofancy --all"
+        exit 0
+      fi
+
 			(
-				if ! is_dry_run; then
-					set -x
-				fi
 				$sh_c "$pkg_manager install -y -q $pre_reqs"
-				$sh_c 'tee -a /etc/yum.repos.d/artifact-registry.repo << EOF
+				$sh_c "tee -a /etc/yum.repos.d/artifact-registry.repo << EOF
 [sonaric-releases-rpm]
 name=sonaric-releases-rpm
-baseurl=https://us-central1-yum.pkg.dev/projects/sonaric-platform/sonaric-releases-rpm
+baseurl=$RPM_DOWNLOAD_URL
 enabled=1
 repo_gpgcheck=0
 gpgcheck=0
-EOF'
+EOF"
 
         # Enable the repository
 				$sh_c "$pkg_manager makecache"
 			)
 			(
 				pkgs="sonaricd sonaric"
-				if ! is_dry_run; then
-					set -x
-				fi
 				$sh_c "$pkg_manager install -y -q $pkgs"
 			)
 			exit 0
