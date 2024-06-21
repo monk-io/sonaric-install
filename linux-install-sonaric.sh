@@ -162,9 +162,10 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu|debian|raspbian)
+      $sh_c 'apt-get update -qq >/dev/null'
+
       if command_exists sonaricd; then
         echo "Sonaric is already installed"
-        $sh_c 'apt-get update -qq >/dev/null'
         $sh_c 'apt-get install sonaricd sonaric'
         for try in {1..30} ; do
           $sh_c "sonaric version" > /dev/null 2>&1 && break || sleep 2
@@ -172,6 +173,12 @@ do_install() {
         $sh_c "sonaric update --nocolor --nofancy --all"
         exit 0
       fi
+
+      # Check if apt satisfies the version requirement
+      $sh_c "apt satisfy --dry-run 'podman (>=3.4.0)'" || (
+        echo "ERROR: Available podman version is too old, please upgrade to a supported distro"
+        exit 1
+      )
 
 			pre_reqs="apt-transport-https ca-certificates curl"
 			if ! command -v gpg > /dev/null; then
