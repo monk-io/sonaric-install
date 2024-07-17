@@ -167,7 +167,7 @@ do_install() {
       if command_exists sonaricd; then
         echo "Sonaric is already installed"
         $sh_c 'apt-get install sonaricd sonaric'
-        for try in {1..30} ; do
+        for try in $(seq 1 20); do
           $sh_c "sonaric version" > /dev/null 2>&1 && break || sleep 2
         done
         $sh_c "sonaric update --nocolor --nofancy --all"
@@ -211,7 +211,7 @@ do_install() {
         echo "Sonaric is already installed"
         $sh_c "$pkg_manager update --refresh -y -q sonaricd sonaric"
         $sh_c 'systemctl start sonaricd' || echo "Failed to start sonaricd"
-        for try in {1..30} ; do
+        for try in $(seq 1 20); do
           $sh_c "sonaric version" > /dev/null 2>&1 && break || sleep 2
         done
         $sh_c "sonaric update --nocolor --nofancy --all"
