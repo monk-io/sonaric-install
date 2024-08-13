@@ -378,6 +378,8 @@ do_update() {
   print_message "Getting node info..."
   exec_cmd "sonaric node-info $SONARIC_ARGS"
   print_message "Updating workloads..."
+  exec_cmd "sonaric stop --all $SONARIC_ARGS > $DEVNULL 2>&1"
+  exec_cmd "systemctl restart podman > $DEVNULL 2>&1"
   exec_cmd "sonaric update --all $SONARIC_ARGS > $DEVNULL 2>&1"
 }
 
